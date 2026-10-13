@@ -84,6 +84,26 @@ records. Decision-oriented requests ("что мне делать") — collect t
 ONE batch if missing: goal+readiness / context+constraints / desired report blocks /
 style (pyramid) / source bias (кейсы vs документация vs отзывы).
 
+## Parent context guard (provider cuts requests >~50K tokens)
+
+The provider truncates any request heavier than ~50K tokens — including the
+ORCHESTRATOR's own (system prompt + session history + tool results in ONE call).
+The child cap ≤30K keeps subagent requests safely below that line, but the parent
+session is unbounded and can be cut mid-run, silently dropping the brief, wave
+contracts or this skill's body from the request. Enforced countermeasures:
+1. **Persist the brief BEFORE the first wave**: write the ≤10-line plan to
+   `queries/deep-{session}/00-brief.md` as step 1 completes. If mid-run a step or
+   contract seems missing, re-read that file — do NOT re-derive from memory.
+2. **Tiny returns are mandatory** (path + 2-line summary; raw text never crosses).
+3. **Turning-point re-briefing**: before each new wave, re-state the brief in ONE
+   line in the child context (self-contained contexts survive parent truncation).
+4. **Resumable runs**: long/heavy sessions are designed to be re-spawnable — the
+   session pages ARE the state; if the parent context is truncated or poisoned,
+   start a new session, read `queries/deep-{session}/` (index + 00-brief + pages),
+   and continue from the gap check onward. Do NOT re-run finished waves.
+5. **Session hygiene**: watch cumulative size; after 2+ waves, prefer `/new` +
+   resume-over-wiki over stacking one giant session.
+
 ## Pipeline (S2 default; ★ = S3 exhaustive only)
 
 1. **Brief** — ≤10 lines in-context: topic, goal, depth, time-box, allowed sources,
