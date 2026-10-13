@@ -103,6 +103,13 @@ contracts or this skill's body from the request. Enforced countermeasures:
    and continue from the gap check onward. Do NOT re-run finished waves.
 5. **Session hygiene**: watch cumulative size; after 2+ waves, prefer `/new` +
    resume-over-wiki over stacking one giant session.
+6. **Pre-compression dump (this deployment compresses at ~60K)**: the profile
+   spluft runs `context_length: 100000` + `compression.threshold_tokens: 60000` —
+   the mid-session gets silently summarized away at that point. BEFORE starting a
+   wave likely to cross it, force intermediate conclusions out of context into
+   `queries/deep-{session}/` (one line per finished micro-task + open gaps). Only
+   disk/wiki survive compaction; context does not. Hermes has no
+   post-compression hook (verified v0.21.6 sources) — the dump is the hook.
 
 ## Pipeline (S2 default; ★ = S3 exhaustive only)
 
