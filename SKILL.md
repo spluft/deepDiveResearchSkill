@@ -1,7 +1,7 @@
 ---
 name: spluft-research-skill
 description: "External-knowledge requests (web/papers/docs/wiki/model): plan, micro-subagents, verified report. Own systems route to business-task-intake."
-version: 2.0.2
+version: 2.1.0
 author: "spluft (merged deep-request + research-request, 2026-10-13)"
 license: MIT
 metadata:
@@ -124,7 +124,11 @@ Reference that file — do not restate or contradict it. Research-specific extra
 
 1. **Brief** — ≤10 lines in-context: topic, goal, depth, time-box, allowed sources,
    success criteria. Run `date`; stamp real year into all child prompts
-   ("'latest/current' = {YYYY}, never inferred").
+   ("'latest/current' = {YYYY}, never inferred"). Add ONE inline line: query type
+   (tech/legal/market/product/social) → source priorities + verification quirks.
+   It is a brief line, NOT a routing gate — a separate topic-classification stage
+   has no published support (2026-11 industry audit); route by subtopics after the
+   plan, not by domain before it.
 2. **Plan review (S3 ONLY, default OFF)** — ONE wait-once review by a child of the
    other model family: hallucination risk, verifiable success criteria, source
    reachability → APPROVE or REQUEST_CHANGES + 3-line fix. Retry once; 2nd
@@ -153,8 +157,10 @@ Reference that file — do not restate or contradict it. Research-specific extra
    post-wave loop at step 12; child writes ONLY its own page — write_once, no
    index/log edits, no cross-page reads mid-run). Child context: date, microtask, queries+goals, page
    path, plus this return contract verbatim: per finding ≤200 words — rationale /
-   evidence (quotes+numbers only) / summary (1-2 sentences) / URL + date +
-   source-type / confidence / follow-ups; close with a one-line
+   evidence (VERBATIM quote + numbers, never a paraphrase — paraphrasing under
+   summarization pressure destroys precision; a claim without a quote is marked
+   `[no-quote]` and cannot carry a key conclusion) / summary (1-2 sentences) /
+   URL + date + source-type / confidence / follow-ups; close with a one-line
    'Bottom line for parent:' verdict (what the finding set means for the brief's
    decision — feeds gap-check and synthesis directly); raw page text never leaves
    the child;
@@ -168,7 +174,10 @@ Reference that file — do not restate or contradict it. Research-specific extra
    between-turns) — dispatch full-size background batches first and budget for a
    synchronous tail, or the "fire and end turn" assumption silently breaks.
    Sources: web_search + web_extract; GitHub via `curl` API;
-   arxiv skill; Reddit/X blocked direct (403/JS-challenge) → PullPush, validated:
+   arxiv skill; Hacker News via Algolia API
+   `https://hn.algolia.com/api/v1/search?query=` (free, keyless, keeps working when
+   Reddit archives are down — use for forum/HN signal); Reddit/X blocked direct
+   (403/JS-challenge) → PullPush, validated:
    submissions `https://api.pullpush.io/reddit/search/submission/?ids={thread_id}`;
    comments `.../search/comment/?link_id=t3_{thread_id}&size=100` (sort by score
    client-side; the `subreddit` param does NOT accept comma-separated lists);
@@ -178,26 +187,45 @@ Reference that file — do not restate or contradict it. Research-specific extra
 6. **Gap check** — missing subtopics; dedupe syndication (same claim from 2 mirrors
    = ONE source; one repo/blog link repeated across threads = ONE promotional source
    — report the campaign, never "community consensus"); drop out-of-time-box
-   findings; rate-limited: no re-query same round. ★ **Critic child** (other model
+   findings; rate-limited: no re-query same round. **Claim-level dedup** —
+   canonicalize each finding as {problem, aspect, mechanism}; classify
+   new/extension/duplicate: the same claim in different words from 2 leaves =
+   ONE claim with sources unioned. ★ **Critic child** (other model
    family) reviews pages before synthesis: dead URLs, stale data, credibility
-   mislabels, contradictions. Critic FILTERS, never generates. The critic prompt
+   mislabels, contradictions. Critic FILTERS, never generates. **Forced-adversarial
+   quota**: ≥3 concrete weaknesses with evidence per reviewed page; compliments
+   invalid. Pair with a **narrow claim-support judge** (stronger model than the
+   collectors): answers only "does the cited URL actually support this line,
+   yes/no" — the narrow, differently-modeled check is what practitioners report
+   works (an 8B summarizer "can't say 'I found nothing' with a straight face"). The critic prompt
    must ENUMERATE the concrete conflict axes to check (version numbers, feature
    defaults, project/repo identity, claims a later verification page supersedes) —
    a generic "find contradictions" prompt under-detects; demand per-item
    file→problem→KEEP/FIX/DROP verdicts plus a closing 'критические для синтеза'
    paragraph that feeds synthesis directly.
-7. **Loop decision** — gaps → round 2 with ceil(breadth/2) targeted queries;
-   saturation (<5% new info) or round cap (S2: 2, S3: 3) → synthesize.
+7. **Loop decision** — gaps → round 2 with ceil(breadth/2) targeted queries.
+   STOP = content saturation OR hard budget cap (child tool-calls/tokens from
+   HARD-LIMITS) OR round cap (S2: 2, S3: 3) — all three first-class. Saturation =
+   net-NEW claims (after dedup) below threshold for 2-3 consecutive rounds, not a
+   single <5% reading. A repeat round MUST carry new external evidence (new
+   queries/sources/tool checks); a second critic pass over the same context is
+   banned — intrinsic self-correction without external feedback fails or
+   degrades (arXiv:2310.01798, 2406.01297) and checkers drift to rubber-stamping.
 8. ★ **Falsification** — S3 (and S2 for the top claim): one child per top 1-3 claims:
    "find evidence that CONTRADICTS this claim; if none say so explicitly; do NOT
    search for support". Strong contradiction → both sides in report, never dropped.
    When falsification + critic together exceed `max_concurrent_children`, batch
    2-3 falsification targets into ONE child working them sequentially (per-target
    verdict + literal "нет опровержений" when none found) instead of dropping targets.
-9. **Synthesis** — from session pages + scratchpad ONLY, written to `report.md`.
+9. **Synthesis** — from session pages + scratchpad ONLY, written to `report.md`,
+   generated **ONE-SHOT** in a single pass — section-by-section parallel report
+   writing is BANNED ("disjointed and not very cohesive", LangChain measured).
    Report format: `references/report-format.md` (source weights, confidence tags,
    4 structures) — reports MUST use that format, including the fixed section set
-   (резюме / секции по сабтопикам / ограничения / источники).
+   (резюме / секции по сабтопикам / ограничения / источники). ★ **Blind judges**
+   (S3 comparative): when the report must pick BETWEEN alternatives, rank the
+   candidates under randomized labels with a cold-started judge that MUST rank
+   ("all good" is an invalid verdict) — anti-sycophancy guard.
 9a. **Cross-check (S3; S2 on request)** — top 2-3 conclusions of the draft get
    independently re-verified by 1-2 children on a DIFFERENT model family than the
    investigators (via gothrottler routing); prompt = the claim verbatim + 'verify or
@@ -216,7 +244,9 @@ Reference that file — do not restate or contradict it. Research-specific extra
     unresolvable and forces re-triage of artifacts vs real dead links; verify the
     few odd/schemeless entries individually by curl and log the counts; a 4xx from an
     API endpoint that needs query params (search/download) is a malformed probe, not
-    a dead source — don't strike that citation. Dead links must be fixed or the claim struck / marked
+    a dead source — don't strike that citation; a `no HTTP status` ERR is the host
+    blocking that domain (TLS/network), not a dead link — re-probe with
+    `curl -L -A <browser UA>` and only treat as dead if curl also fails. Dead links must be fixed or the claim struck / marked
     `[URL_DEAD]`. Assert every factual block has a URL; log counts in footer;
     refuted/numeric-mismatch claims surviving ⇒ header `status: требует-проверки`
     + «Требует ручной проверки» block.
@@ -252,6 +282,9 @@ Reference that file — do not restate or contradict it. Research-specific extra
   even when the work completed — read the artifact page on disk (read_file) before
   re-dispatching; a completed leaf re-dispatched doubles cost and can clobber a
   good page with a worse retry.
+- Every leaf prompt must RESTATE its absolute output-file path verbatim in its own
+  goal/context — "write to the given file" whose path lives only in parent context
+  makes the leaf invent its own path and the artifact lands outside the run dir.
 - Before delivering long synthesis, regex the artifact for foreign-script mojibake
   (stray CJK/odd tokens) and clean each hit.
 - GitHub raw fetches 404 silently on wrong branch — read `default_branch` from the
@@ -283,3 +316,7 @@ Support files: `references/oss-project-eval-apis.md` — OSS project eval kit
 (primary-API endpoints + credibility tells + live smoke-test kit for bundled tools).
 `references/evaluating-agent-skill-repos.md` — how to evaluate an external agent-skill/
 framework repo for adoption, plus standing verdicts on borrowed/rejected patterns.
+v2.1.0 (2026-11-09) absorbed the industry deep-research-pipeline audit: verbatim-quote
+findings unit, claim-level dedup, narrow claim-support judge, forced-adversarial critic
+quota, blind comparative judges, saturation+budget-cap stops, one-shot report, inline
+topic line; REJECTED with evidence: topic-gate stage, fixed double critic loop.

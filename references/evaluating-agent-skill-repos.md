@@ -30,7 +30,7 @@ For "should we adopt / replace / partially take skill X from GitHub" requests.
 Genre: modify→verify→keep/discard metric loops on code/own systems + orchestrator
 routing shell-script. NOT web research. Do NOT adopt as a skill; NOT a replacement.
 
-BORROWED as candidate upgrades (pending user sign-off per pattern):
+ADOPTED into SKILL.md as of v2.1.0 (2026-11-09, user sign-off):
 - Saturation stop: wave ends when net-new findings < threshold for 3 consecutive
   rounds (marginal-return stop, not just budget).
 - Claim-level dedup: canonicalize each finding ({problem, persona/aspect, mechanism})
@@ -50,3 +50,37 @@ REJECTED with reason:
   belong to dev-loop territory (kanban/business-task-intake), not the research skill.
   Reusable idea for that class: routing logic in a deterministic script, success
   predicate pinned verbatim at round 0 and re-screened on resume, never re-derived.
+
+## Evidence-backed stage verdicts (designing/evaluating any research pipeline)
+
+Cross-checked survey of live deep-research frameworks (gpt-researcher, langchain
+open_deep_research, deer-flow v2, storm, dzhng/deep-research, deepdive,
+hybrid-deep-research, dexter) + engineering blogs + self-correction literature;
+full record in the wiki (`queries/deep-agent-pipelines-2026-11/`):
+
+- Severity/effort triage tiers: SUPPORTED (Anthropic explicit scaling rule: 1 agent
+  3–10 calls / 2–4 subagents 10–15 each / 10+ subagents with divided responsibilities).
+- Topic/domain classifier as a standalone stage before planning: WEAK — no live
+  framework has one; keep topic hints inline in the brief, never a gated stage.
+- Per-document summarization before analysis: SUPPORTED — the unit is
+  URL + verbatim quote; paraphrase-under-summarization-pressure destroys precision.
+- Separate fact-check / critic roles: SUPPORTED (CoVe independent verification,
+  CRITIC tool-grounded critique, dedicated citation pass); judge-role PROLIFERATION
+  not proven better — one well-prompted judge was most consistent.
+- A second fixed self-critique round on the same context: CONTRADICTED — LLMs do not
+  self-correct without external feedback and can degrade (Huang ICLR 2024;
+  Kamoi TACL 2024 survey). A repeat round is justified only when it consumes NEW
+  external evidence (fresh retrieval, source re-read, tool check); no published
+  A/B of "2× vs 1×" exists — do not sell a double loop as proven better.
+- Stopping rule: saturation (last N sources add nothing new) + hard budget cap is
+  the practice convergent among newest systems; fixed round counters are legacy
+  framework behavior; superiority of either is unpublished — mark as practice,
+  not evidence.
+- Final report: ONE-SHOT generation from condensed findings — parallel section-by-
+  section writing measured "disjointed and not very cohesive" (LangChain).
+- anthropics/skills ships NO deep-research skill — never cite one as a reference.
+- Socialpranker/deepdive (365★) + Ddibirov/hybrid-deep-research (16★) implement the
+  richest pipelines (genre/depth gate, claims ledger, saturation stop, multi-axis
+  verify) but are solo-authored self-promo: their internal numbers (e.g. "Search-o1
+  33%→24%", "URL fabrication impossible") are unverified claims — borrow the
+  anatomy, never quote the stats.
