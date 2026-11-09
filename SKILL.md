@@ -1,7 +1,7 @@
 ---
 name: spluft-research-skill
 description: "External-knowledge requests (web/papers/docs/wiki/model): plan, micro-subagents, verified report. Own systems route to business-task-intake."
-version: 2.0.1
+version: 2.0.2
 author: "spluft (merged deep-request + research-request, 2026-10-13)"
 license: MIT
 metadata:
@@ -265,5 +265,21 @@ Reference that file — do not restate or contradict it. Research-specific extra
   path and cp into their own page); never retry /mnt write_file directly.
 - After an S3 run, suggest `/new` — exhaustive context poisons quick answers.
 
-Support file: `references/oss-project-eval-apis.md` — OSS project eval kit
+## Canonical copies & sync
+
+This skill lives in three places; they MUST stay byte-identical. Canonical source:
+`/opt/data/profiles/spluft/skills/research/spluft-research-skill/`. Mirrors: the
+wifu profile copy (`/opt/data/profiles/wifu/skills/research/spluft-research-skill/`)
+and the git repo `/mnt/git/llm/deep-research`.
+
+To audit: `diff -r` spluft vs each mirror. To sync: `rm -rf` + `cp -a` the spluft
+dir over the wifu copy; for the /mnt git repo use plain `cp` (NO `-a` — preserving
+timestamps on the NFS mount fails with Operation not permitted), then commit in the
+repo. Whenever any copy is edited, re-sync the other two in the same session —
+three-way drift is silent and nobody notices until an audit asks "they're identical,
+right?".
+
+Support files: `references/oss-project-eval-apis.md` — OSS project eval kit
 (primary-API endpoints + credibility tells + live smoke-test kit for bundled tools).
+`references/evaluating-agent-skill-repos.md` — how to evaluate an external agent-skill/
+framework repo for adoption, plus standing verdicts on borrowed/rejected patterns.
