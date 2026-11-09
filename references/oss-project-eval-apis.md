@@ -19,7 +19,14 @@ below is from the project's own registries — no blog/README trust needed.
 - **Stars vs organic-discussion ratio**: 30k+ stars with no HN story and only tutorial-farm content = synthetic growth; report it as a finding, not just context.
 - **Astroturf shape**: same-URL spam from vendor-adjacent accounts, multilingual tutorial-video wall in the README, promo baseline on social — collapse to ONE promotional source per the dedupe rule.
 - **Vaporware shape**: polished README + repo 404 on the API / only a zero-star personal mirror → immediately do-not-recommend, say so in the report.
+- **Awesome-list entry ≠ external repo**: a tool named in an awesome-list/raw article may be a file bundled inside the host project's tree (e.g. optional-skills/<dir>/), not a standalone repo — resolve the entry against the upstream repo tree before recommending 'adopt X from list Y'; the list is a lead, the tree is the fact.
 - **AI-written code**: co-author trailers like `Claude Code <noreply@anthropic.com>` on most commits — note under maturity, changes maintenance risk assessment.
 
 ## Order that worked
 repo API (facts + default_branch) → README raw → security-advisories → contributors/releases → npm/Docker volume → HN Algolia → then alternatives landscape sweep (one child per niche tier: same-problem competitors vs adjacent-category tooling), each child verifying stars/last-push on api.github.com itself.
+
+## Live smoke-test kit (evaluating a tool that ships with a skill/repo)
+Build a synthetic fixture (2-3 source files + one test), install each bundled tool from the cloned repo (`uv pip install --python .venv/bin/python <local-repo>`), run it, and quote real output as the verdict evidence.
+- Tools that download tree-sitter grammars at first run cache under HOME and refuse caches owned by a foreign uid — point `TREE_SITTER_LANGUAGE_PACK_CACHE_DIR` (or the env var the error names) at a fresh dir the running uid owns (`mktemp -d /dev/shm/...` if the workspace fs is uid-mismatched); check `df /dev/shm` first, grammar packs need tens of MB.
+- Coverage-metric tools may hardcode a test runner (unittest discover) instead of the project's (pytest) — if the run reports 'Ran 0 tests' yet still prints scores, the coverage number is bogus; verify with `--use-existing-coverage` or an explicit `--test-command` before trusting any CRAP-like score.
+- Metrics tools can silently self-install packages into the venv and keep going on failure — read their full trace output, don't pipe through tail, or a 0%-coverage run looks green.
