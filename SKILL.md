@@ -1,7 +1,7 @@
 ---
 name: spluft-research-skill
 description: "External-knowledge requests (web/papers/docs/wiki/model): plan, micro-subagents, verified report. Own systems route to business-task-intake."
-version: 2.1.0
+version: 2.1.2
 author: "spluft (merged deep-request + research-request, 2026-10-13)"
 license: MIT
 metadata:
@@ -173,7 +173,11 @@ Reference that file — do not restate or contradict it. Research-specific extra
    SYNCHRONOUSLY and blocks the parent call until they finish (result inline, not
    between-turns) — dispatch full-size background batches first and budget for a
    synchronous tail, or the "fire and end turn" assumption silently breaks.
-   Sources: web_search + web_extract; GitHub via `curl` API;
+   Sources: web_search + web_extract; GitHub via `curl` API — for code anatomy of a
+   specific release, download its tarball
+   `https://github.com/{owner}/{repo}/archive/refs/tags/{tag}.tar.gz` (keyless, no
+   API quota, pins the exact shipped source; grep it offline and cite `file:line`
+   verbatim — the strongest evidence class for 'how is X implemented' questions);
    arxiv skill; Hacker News via Algolia API
    `https://hn.algolia.com/api/v1/search?query=` (free, keyless, keeps working when
    Reddit archives are down — use for forum/HN signal); Reddit/X blocked direct
@@ -198,8 +202,10 @@ Reference that file — do not restate or contradict it. Research-specific extra
    collectors): answers only "does the cited URL actually support this line,
    yes/no" — the narrow, differently-modeled check is what practitioners report
    works (an 8B summarizer "can't say 'I found nothing' with a straight face"). The critic prompt
-   must ENUMERATE the concrete conflict axes to check (version numbers, feature
-   defaults, project/repo identity, claims a later verification page supersedes) —
+   must ENUMERATE the concrete conflict axes to check (version numbers and release
+   dates, feature defaults, project/repo identity, cited PR/issue TITLES vs the
+   context the leaf attached to them — a correct number can carry a wrong story —
+   claims a later verification page supersedes) —
    a generic "find contradictions" prompt under-detects; demand per-item
    file→problem→KEEP/FIX/DROP verdicts plus a closing 'критические для синтеза'
    paragraph that feeds synthesis directly.
@@ -285,17 +291,26 @@ Reference that file — do not restate or contradict it. Research-specific extra
 - Every leaf prompt must RESTATE its absolute output-file path verbatim in its own
   goal/context — "write to the given file" whose path lives only in parent context
   makes the leaf invent its own path and the artifact lands outside the run dir.
+- Re-derive any policy/constraint-applicability table yourself at synthesis — leaves
+  do not know the deployment's network policy and will mark direct-to-vendor egress
+  routes as 'compatible'; their compatibility column is a draft, never a verdict.
 - Before delivering long synthesis, regex the artifact for foreign-script mojibake
   (stray CJK/odd tokens) and clean each hit.
 - GitHub raw fetches 404 silently on wrong branch — read `default_branch` from the
   repo API first.
 - Unauthenticated GitHub API budget (60 req/h) is burned fast by parallel fan-out —
-  switch to a shallow git clone of the pinned branch for tree/contents (also solves
-  default-branch 404s); reserve API calls for stars/issues/advisories.
+  for source reading prefer the release tarball `/archive/refs/tags/{tag}.tar.gz`
+  (keyless, pins exact shipped source), for live-branch tree browsing a shallow git
+  clone of the pinned branch (also solves default-branch 404s); reserve API calls
+  for stars/issues/advisories.
 - write_file/safe-root: /mnt is outside HERMES_WRITE_SAFE_ROOT (/opt/data) for
   parent AND children — stage in $scratch then `cp` to the wiki path, including the
   parent's own brief, scratchpad, and page skeletons (children get the staged scratch
-  path and cp into their own page); never retry /mnt write_file directly.
+  path and cp into their own page); never retry /mnt write_file directly. The `patch`
+  tool is refused for /mnt for the same reason — in-place edits of existing /mnt
+  files (wiki index.md/log.md entries, post-wave frontmatter/wikilink passes) go
+  through a terminal `python3` heredoc doing string replacement, with an assert that
+  the new marker is absent before writing (idempotence guard).
 - After an S3 run, suggest `/new` — exhaustive context poisons quick answers.
 
 ## Canonical copies & sync
