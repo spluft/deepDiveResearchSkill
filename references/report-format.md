@@ -6,15 +6,18 @@
 
 official_docs 1.0 > news 0.7 > analysis/repo 0.6 > blog 0.4 > social 0.3.
 Recency tiebreak: stale authority gets "по состоянию на {год}", newer wins,
-keep both.
+keep both. Weights are PRIORS, never verdicts: per-claim fitness is decided by
+critic/judge with a stated reason; a fitness override of the prior must say why.
 
 ## Confidence tags
 
-Key findings tagged `[доверие: высокая|средняя|низкая]`:
+Key findings tagged `[доверие: высокая|средняя|низкая]` — mapped from ledger
+statuses (references/ledger-schema.md); report prose never mixes raw status
+tokens with these tags:
 
-- высокая = 2+ независимых источника или 1 официальный
-- средняя = 1 источник, не официальный
-- низкая → also listed in «Противоречия»
+- высокая = CORROBORATED (2+ independent after syndication dedup) or VERIFIED + official class
+- средняя = SUPPORTED, or single VERIFIED non-official
+- низкая = UNVERIFIED/INFERRED → also listed in «Противоречия»/limitations
 
 ## Structures (pick one by category)
 
